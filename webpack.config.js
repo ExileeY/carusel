@@ -1,5 +1,6 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = {
   entry: './App/index.js',
@@ -26,6 +27,14 @@ module.exports = {
   },
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   plugins: [
-    new HtmlWebpackPlugin({ template: './App/index.html' })
+    new HtmlWebpackPlugin({ template: './App/index.html' }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {from: './App/serviceworker.js'},
+        {from: './App/offline.html'},
+        {from: './App/manifest.json'},
+        {from: './App/images', to: './images'}
+      ]
+    })
   ]
 }
