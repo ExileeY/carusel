@@ -1,20 +1,8 @@
 import React from 'react'
 
-function reducer (state, action) {
-  if (action.type === 'increment') {
-    return state === action.maxIndex ? 0 : state + 1
-  }
-  else if (action.type === 'decrement') {
-    return state === 0 ? action.maxIndex : state - 1
-  }
-}
-
-export default function Corusel ({children}) {
-  const [state, dispatch] = React.useReducer(reducer, 0)
+function useSlide(maxElement) {
+  const [slideIndex, setSlideIndex] = React.useState(0)
   const [slideEffect, setSlideEffect] = React.useState(null)
-  const [infMode, setInfMode] = React.useState(false)
-  const [touchStart, setTouchStart] = React.useState(0);
-  const [touchEnd, setTouchEnd] = React.useState(0);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
@@ -24,10 +12,10 @@ export default function Corusel ({children}) {
     return () => {
       window.clearTimeout(id)
     }
-  }, [state])
+  }, [slideIndex])
 
   const increment = () => {
-    dispatch({type: 'increment', maxIndex: children.length - 1})
+    setSlideIndex(slideIndex => slideIndex === maxElement ? 0 : ++slideIndex)
     setSlideEffect({
       position: 'absolute',
       left: '100%',
@@ -36,22 +24,8 @@ export default function Corusel ({children}) {
     })
   }
 
-  React.useEffect(() => {
-    if (infMode === false) {
-      window.clearInterval(id)
-    } else {
-      var id = window.setInterval(() => {
-        increment()
-      }, 3000)
-    }
-
-    return () => {
-      window.clearInterval(id)
-    }
-  }, [infMode])
-
   const decrement = () => {
-    dispatch({type: 'decrement', maxIndex: children.length - 1})
+    setSlideIndex(slideIndex => slideIndex === 0 ? maxElement : --slideIndex)
     setSlideEffect({
       position: 'absolute',
       left: '-100%',
@@ -59,6 +33,39 @@ export default function Corusel ({children}) {
       animationDelay: '0s'
     })
   }
+
+  const slide = {
+    index: slideIndex,
+    effect: slideEffect
+  }
+
+  const attrs = {
+    increment: () => increment(),
+    decrement
+  }
+
+  return [slide, attrs]
+}
+
+export default function Corusel ({children}) {
+  const [slide, attrs] = useSlide(children.length - 1)
+  const [infMode, setInfMode] = React.useState(false)
+  const [touchStart, setTouchStart] = React.useState(0);
+  const [touchEnd, setTouchEnd] = React.useState(0);
+
+  React.useEffect(() => {
+    if (infMode === false) {
+      window.clearInterval(id)
+    } else {
+      var id = window.setInterval(() => {
+        attrs.increment()
+      }, 3000)
+    }
+
+    return () => {
+      window.clearInterval(id)
+    }
+  }, [infMode])
 
   const handleTouchStart = (e) => {
     setTouchStart(e.targetTouches[0].clientX)
@@ -70,25 +77,25 @@ export default function Corusel ({children}) {
 
   const handleTouchEnd = () => {
     if (touchStart - touchEnd > 150) {
-      increment()
+      attrs.increment()
     }
 
     if (touchStart - touchEnd < -150) {
-      decrement()
+      attrs.decrement()
     }
   }
 
   return (
     <>
-      <div className="slide-body" style={slideEffect} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-        <div className="slide-body__content" dangerouslySetInnerHTML={{__html: children[state].html}}/>
+      <div className="slide-body" style={slide.effect} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+        <div className="slide-body__content" dangerouslySetInnerHTML={{__html: children[slide.index].html}}/>
       </div>
       <div className="options">
         <input id="mode" type='checkbox'/>
         <label htmlFor="mode" onClick={() => setInfMode(infMode => infMode === true ? false : true)}>Infinity mode</label>
       </div>
-      <button className="btn-prev btn-clear btn-light" onClick={decrement}>←</button>
-      <button className="btn-next btn-clear btn-light" onClick={increment}>→</button>
+      <button className="btn-prev btn-clear btn-light" onClick={attrs.decrement}>←</button>
+      <button className="btn-next btn-clear btn-light" onClick={attrs.increment}>→</button>
     </>
   )
 } 
